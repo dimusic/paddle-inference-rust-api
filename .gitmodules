@@ -1,0 +1,3 @@
+[submodule "paddle-inference-api-sys/Paddle"]
+	path = paddle-inference-api-sys/Paddle
+	url = https://github.com/PaddlePaddle/Paddle
