@@ -91,6 +91,9 @@ fn build_paddle() -> PathBuf {
             "-DWITH_GPU=OFF",
             "-DON_INFER=ON",
             // "-DPY_VERSION=3.10",
+            "-DWITH_NCCL=OFF",
+            "-DWITH_RCCL=OFF",
+            "-DWITH_POCKETFFT=OFF",
             "-DCMAKE_BUILD_TYPE=Release",
             &format!("-DCMAKE_INSTALL_PREFIX={}", install_dir.clone().display()),
             &format!("{}", manifest_path.join("Paddle").display())
