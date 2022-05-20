@@ -2,6 +2,7 @@ use std::ffi::CString;
 
 use paddle_inference_api_sys::{PD_ConfigCreate, PD_Config, PD_ConfigDisableGpu, PD_ConfigSetCpuMathLibraryNumThreads, PD_ConfigDisableGlogInfo, PD_ConfigSetModelDir};
 
+#[derive(Debug)]
 pub struct PdConfig {
     raw_config_ptr: *mut PD_Config
 }
