@@ -2,8 +2,9 @@ use std::os::raw::{c_ulonglong};
 
 use c_vec::CVec;
 use num::{NumCast, ToPrimitive};
-use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorCopyFromCpuInt64, PD_TensorCopyFromCpuFloat, PD_TensorCopyFromCpuUint8, PD_TensorCopyFromCpuInt8, PD_TensorCopyFromCpuInt32};
+use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorCopyFromCpuInt64, PD_TensorCopyFromCpuFloat, PD_TensorCopyFromCpuUint8, PD_TensorCopyFromCpuInt8, PD_TensorCopyFromCpuInt32, PD_TensorCopyToCpuInt64};
 
+#[derive(Debug)]
 pub enum PdTensorDataType {
     UNK,
     FLOAT32,
@@ -46,6 +47,21 @@ impl ToPdTensorDataType for i64 {
         PdTensorDataType::INT64
     }
 }
+
+pub trait CopyPdOutput {
+    fn copy_pd_output(&mut self, tensor: &PdTensor) -> ();
+}
+
+impl CopyPdOutput for Vec<i64> {
+    fn copy_pd_output(&mut self, tensor: &PdTensor) -> () {
+        println!("copy_pd_output");
+
+        unsafe {
+            PD_TensorCopyToCpuInt64(tensor.raw_tensor_ptr, self.as_mut_ptr());
+        }
+    }
+}
+
 
 fn c_int_arr_to_rust_ints(size: u64, data: *mut i32) -> Vec<i32> {
     let mut res: Vec<i32> = vec![];
@@ -93,12 +109,8 @@ impl PdTensor {
         let shape_ptr = unsafe {
             PD_TensorGetShape(self.raw_tensor_ptr)
         };
-
         let shape = unsafe { *shape_ptr };
-        let shape_count = shape.size;
-        let shape_data = shape.data;
-
-        let input_names_vec = c_int_arr_to_rust_ints(shape_count, shape_data);
+        let input_names_vec = c_int_arr_to_rust_ints(shape.size, shape.data);
 
         unsafe {
             PD_OneDimArrayInt32Destroy(shape_ptr);
@@ -107,6 +119,13 @@ impl PdTensor {
         input_names_vec
     }
 
+    pub fn set_lod_tmp(&self, mut lod: PD_TwoDimArraySize) {
+        unsafe {
+            PD_TensorSetLod(self.raw_tensor_ptr, &mut lod);
+        };
+    }
+
+    //BROKEN
     /// Set the tensor lod information
     pub fn set_lod(&self, lod: Vec<Vec<u64>>) {
         let mut lod_one_dim_vec: Vec<*mut PD_OneDimArraySize> = lod.iter().map(|lod_i| {
@@ -158,6 +177,31 @@ impl PdTensor {
             PD_DATA_UINT8 => PdTensorDataType::UINT8,
             PD_DATA_UNK | _ => PdTensorDataType::UNK,
         }
+    }
+
+    pub fn get_shape(&self) -> Vec<i32> {
+        let shape_ptr = unsafe {
+            PD_TensorGetShape(self.raw_tensor_ptr)
+        };
+        let shape = unsafe { *shape_ptr };
+
+        let converted_shape = c_int_arr_to_rust_ints(shape.size, shape.data);
+
+        unsafe {
+            PD_OneDimArrayInt32Destroy(shape_ptr);
+        };
+
+        converted_shape
+    }
+
+    pub fn copy_from_cpu_tmp(&self, data: &mut Vec<i64>) {
+        let data_cvec = unsafe {
+            CVec::<i64>::new(data.as_mut_ptr(), data.len())
+        };
+
+        unsafe {
+            PD_TensorCopyFromCpuInt64(self.raw_tensor_ptr, data_cvec.into_inner());
+        };
     }
 
     /// Copy the host memory to tensor data.
@@ -235,4 +279,31 @@ impl PdTensor {
         }
     }
 
+    pub fn copy_to_cpu_tmp(&self, output_data: &mut [i64; 12]) {
+        unsafe {
+            PD_TensorCopyToCpuInt64(self.raw_tensor_ptr, output_data.as_mut_ptr());
+        };
+    }
+
+    pub fn copy_to_cpu_tmp2(&self, output_size: usize) -> Vec<i64> {
+        let mut output = vec![0; output_size];
+
+        unsafe {
+            PD_TensorCopyToCpuInt64(self.raw_tensor_ptr, output.as_mut_ptr());
+        };
+
+        output
+    }
+
+    /// Copy the tensor data to the host memory
+    /// It's usually used to get the output tensor data.
+    pub fn copy_to_cpu<T>(&self, output_data: &mut T)
+    where T: CopyPdOutput + IntoIterator {
+        output_data.copy_pd_output(&self);
+
+
+        // set len
+        // x.set_len(size);
+    }
 }
+
