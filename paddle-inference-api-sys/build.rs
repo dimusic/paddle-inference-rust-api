@@ -7,35 +7,29 @@ use std::fs;
 use std::io::ErrorKind;
 
 fn main() {
-    let paddle_build_path = build_paddle();
-    let paddle_install_dir = paddle_build_path;
-    let third_party_install_dir = paddle_install_dir.join("paddle_inference_c_install_dir/third_party/install");
+    // paddle_c download from https://paddleinference.paddlepaddle.org.cn/master/user_guides/download_lib.html
+    
+    let paddle_c_install_dir = match option_env!("LIB_PADDLE_C_INSTALL_DIR") {
+        Some(dir) => {
+            println!("cargo:warning=LIB_PADDLE_C_INSTALL_DIR found. Using {}", dir);
+            PathBuf::from(dir)
+        },
+        None => {
+            println!("cargo:warning=LIB_PADDLE_C_INSTALL_DIR is not set. Trying to build paddle from source");
+
+            PathBuf::from(env::var("OUT_DIR").unwrap()).join("paddle_c")
+
+            // build_paddle()
+        }
+    };
+
+    // let third_party_install_dir = paddle_c_install_dir.join("third_party/install");
     
     println!("cargo:rerun-if-changed=paddle_wrapper.h");
 
-    println!("cargo:rustc-link-search=native={}", paddle_install_dir.join("paddle_inference_c_install_dir/paddle/lib").display());
-    println!("cargo:rustc-link-search=native={}", paddle_install_dir.join("paddle_inference_install_dir/paddle/lib").display());
-    println!("cargo:rustc-link-search=native={}", third_party_install_dir.join("cryptopp/lib").display());
-    println!("cargo:rustc-link-search=native={}", third_party_install_dir.join("gflags/lib").display());
-    println!("cargo:rustc-link-search=native={}", third_party_install_dir.join("glog/lib").display());
-    println!("cargo:rustc-link-search=native={}", third_party_install_dir.join("openblas/lib").display());
-    println!("cargo:rustc-link-search=native={}", third_party_install_dir.join("protobuf/lib").display());
-    println!("cargo:rustc-link-search=native={}", third_party_install_dir.join("utf8proc/lib").display());
-    println!("cargo:rustc-link-search=native={}", third_party_install_dir.join("xxhash/lib").display());
+    println!("cargo:rustc-link-search=native={}", paddle_c_install_dir.join("paddle").join("lib").display());
+    println!("cargo:rustc-link-lib=dylib=paddle_inference_c");
     
-    // println!("cargo:rustc-link-lib=static=stdc++");
-    println!("cargo:rustc-link-lib=dylib=c++");
-
-    println!("cargo:rustc-link-lib=static=cryptopp");
-    println!("cargo:rustc-link-lib=static=gflags");
-    println!("cargo:rustc-link-lib=static=glog");
-    println!("cargo:rustc-link-lib=static=openblas");
-    println!("cargo:rustc-link-lib=static=protobuf");
-    println!("cargo:rustc-link-lib=static=utf8proc");
-    println!("cargo:rustc-link-lib=static=xxhash");
-
-    println!("cargo:rustc-link-lib=static=paddle_inference");
-    println!("cargo:rustc-link-lib=static=paddle_inference_c");
     
     let bindings = bindgen::Builder::default()
         .rustfmt_bindings(true)
@@ -71,6 +65,7 @@ fn run(cmd: &mut Command) {
     }
 }
 
+#[allow(dead_code)]
 fn build_paddle() -> PathBuf {
     let manifest_path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
