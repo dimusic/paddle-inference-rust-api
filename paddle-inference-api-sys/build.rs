@@ -8,28 +8,15 @@ use std::io::ErrorKind;
 
 fn main() {
     // paddle_c download from https://paddleinference.paddlepaddle.org.cn/master/user_guides/download_lib.html
-    
-    let paddle_c_install_dir = match option_env!("LIB_PADDLE_C_INSTALL_DIR") {
-        Some(dir) => {
-            println!("cargo:warning=LIB_PADDLE_C_INSTALL_DIR found. Using {}", dir);
-            PathBuf::from(dir)
-        },
-        None => {
-            println!("cargo:warning=LIB_PADDLE_C_INSTALL_DIR is not set. Trying to build paddle from source");
-
-            PathBuf::from(env::var("OUT_DIR").unwrap()).join("paddle_c")
-
-            // build_paddle()
-        }
-    };
-
-    // let third_party_install_dir = paddle_c_install_dir.join("third_party/install");
-    
     println!("cargo:rerun-if-changed=paddle_wrapper.h");
 
+    let paddle_c_install_dir = option_env!("LIB_PADDLE_C_INSTALL_DIR")
+        .expect("LIB_PADDLE_C_INSTALL_DIR is not set");
+
+    let paddle_c_install_dir = PathBuf::from(paddle_c_install_dir);
+    
     println!("cargo:rustc-link-search=native={}", paddle_c_install_dir.join("paddle").join("lib").display());
     println!("cargo:rustc-link-lib=dylib=paddle_inference_c");
-    
     
     let bindings = bindgen::Builder::default()
         .rustfmt_bindings(true)

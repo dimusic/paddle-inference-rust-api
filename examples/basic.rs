@@ -13,7 +13,7 @@ fn load_word2id_dict(path: String) -> HashMap<String, i64> {
     let reader = BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.expect("FAiled to read line");
+        let line = line.expect("Failed to read line");
         let line = line.split("\t").collect::<Vec<&str>>();
         if line.len() > 0 && line.len() == 2 {
             let id: i64 = line[0].parse::<i64>().expect(&format!("Failed to parse word id {:?}", line));
@@ -34,7 +34,7 @@ fn load_q2b_dict(path: String) -> HashMap<String, String> {
     let reader = BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.expect("FAiled to read line");
+        let line = line.expect("Failed to read line");
         let line = line.split("\t").collect::<Vec<&str>>();
         if line.len() > 0 && line.len() == 2 {
             let word1 = line[0];
@@ -55,7 +55,7 @@ fn load_id2label_dict(path: String) -> HashMap<i64, String> {
     let reader = BufReader::new(file);
 
     for line in reader.lines() {
-        let line = line.expect("FAiled to read line");
+        let line = line.expect("Failed to read line");
         let line = line.split("\t").collect::<Vec<&str>>();
         if line.len() > 0 && line.len() == 2 {
             let id: i64 = line[0].parse::<i64>().expect(&format!("Failed to parse word id {:?}", line));
