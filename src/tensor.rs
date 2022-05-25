@@ -2,7 +2,7 @@ use std::os::raw::{c_ulonglong};
 
 use c_vec::CVec;
 use num::{NumCast, ToPrimitive};
-use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorCopyFromCpuInt64, PD_TensorCopyFromCpuFloat, PD_TensorCopyFromCpuUint8, PD_TensorCopyFromCpuInt8, PD_TensorCopyFromCpuInt32, PD_TensorCopyToCpuInt64};
+use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorCopyFromCpuInt64, PD_TensorCopyFromCpuFloat, PD_TensorCopyFromCpuUint8, PD_TensorCopyFromCpuInt8, PD_TensorCopyFromCpuInt32, PD_TensorCopyToCpuInt64, PD_TensorGetLod};
 
 #[derive(Debug)]
 pub enum PdTensorDataType {
@@ -119,12 +119,6 @@ impl PdTensor {
         input_names_vec
     }
 
-    pub fn set_lod_tmp(&self, mut lod: PD_TwoDimArraySize) {
-        unsafe {
-            PD_TensorSetLod(self.raw_tensor_ptr, &mut lod);
-        };
-    }
-
     /// Set the tensor lod information
     pub fn set_lod(&self, lod: Vec<Vec<u64>>) {
         let mut pd_arr_lod: Vec<PD_OneDimArraySize> = lod.into_iter().map(|lod_i| {
@@ -159,8 +153,24 @@ impl PdTensor {
         };
     }
 
-    pub fn get_lod(&self) {
-        todo!()
+    /// Get the tensor lod information
+    pub fn get_lod(&self) -> Vec<Vec<u64>> {
+        let c_lod = unsafe { *PD_TensorGetLod(self.raw_tensor_ptr) };
+        let c_lod_size: usize = c_lod.size.try_into().unwrap();
+        let c_lod_data = c_lod.data;
+        let lod_data = unsafe {
+            Vec::from_raw_parts(c_lod_data, c_lod_size, c_lod_size)
+        };
+        
+        lod_data.into_iter().map(|d| {
+            let arr = unsafe { *d };
+            let size: usize = arr.size.try_into().unwrap();
+            let data = arr.data;
+            
+            unsafe {
+                Vec::from_raw_parts(data, size, size)
+            }
+        }).collect()
     }
 
     /// Get the tensor data type

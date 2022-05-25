@@ -177,6 +177,8 @@ fn main() {
     }
 
     println!("ouput_data: {:?}", output_data);
+    let get_lod = input_tensor.get_lod();
+    println!("get_lod: {:?}", get_lod);
 
     let version_c = unsafe { CStr::from_ptr(PD_GetVersion()) };
     println!("version: {:?}", version_c);
