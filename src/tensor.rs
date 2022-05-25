@@ -125,37 +125,37 @@ impl PdTensor {
         };
     }
 
-    //BROKEN
     /// Set the tensor lod information
     pub fn set_lod(&self, lod: Vec<Vec<u64>>) {
-        let mut lod_one_dim_vec: Vec<*mut PD_OneDimArraySize> = lod.iter().map(|lod_i| {
-            let mut c_converted_data: Vec<c_ulonglong> = lod_i.into_iter()
-                .map(|&i| i.try_into().unwrap())
-                .collect();
-            
-            let lod_i_cvec = unsafe {
-                CVec::new(c_converted_data.as_mut_ptr(), lod_i.len())
-            };
-            let mut lod_i_arr: PD_OneDimArraySize = PD_OneDimArraySize {
-                size: lod_i_cvec.len() as c_ulonglong,
-                data: unsafe { lod_i_cvec.into_inner() }
-            };
+        let mut pd_arr_lod: Vec<PD_OneDimArraySize> = lod.into_iter().map(|lod_i| {
+            let mut converted_lod_data: Vec<c_ulonglong> = lod_i.into_iter().map(|lod_j| {
+                lod_j.try_into().unwrap()
+            }).collect();
+            converted_lod_data.shrink_to_fit();
 
-            let lod_i_ptr: *mut PD_OneDimArraySize = &mut lod_i_arr;
-            lod_i_ptr
+            let pd_arr_lod = PD_OneDimArraySize {
+                size: converted_lod_data.len().try_into().unwrap(),
+                data: converted_lod_data.as_mut_ptr()
+            };
+            std::mem::forget(converted_lod_data);
+
+            pd_arr_lod
         }).collect();
 
-        let lod_cvec = unsafe {
-            CVec::new(lod_one_dim_vec.as_mut_ptr(), lod_one_dim_vec.len())
+        let mut pd_arr_lod_ptrs: Vec<*mut PD_OneDimArraySize> = pd_arr_lod.iter_mut().map(|pd| {
+            let ptr: *mut PD_OneDimArraySize = pd;
+            ptr
+        }).collect();
+
+        let mut pd_two_dim_arr_lod = PD_TwoDimArraySize {
+            size: pd_arr_lod_ptrs.len().try_into().unwrap(),
+            data: pd_arr_lod_ptrs.as_mut_ptr()
         };
 
-        let mut lod_two_dim_vec = PD_TwoDimArraySize {
-            size: lod_cvec.len() as c_ulonglong,
-            data: unsafe { lod_cvec.into_inner() }
-        };
+        std::mem::forget(pd_arr_lod);
 
         unsafe {
-            PD_TensorSetLod(self.raw_tensor_ptr, &mut lod_two_dim_vec);
+            PD_TensorSetLod(self.raw_tensor_ptr, &mut pd_two_dim_arr_lod);
         };
     }
 
@@ -192,16 +192,6 @@ impl PdTensor {
         };
 
         converted_shape
-    }
-
-    pub fn copy_from_cpu_tmp(&self, data: &mut Vec<i64>) {
-        let data_cvec = unsafe {
-            CVec::<i64>::new(data.as_mut_ptr(), data.len())
-        };
-
-        unsafe {
-            PD_TensorCopyFromCpuInt64(self.raw_tensor_ptr, data_cvec.into_inner());
-        };
     }
 
     /// Copy the host memory to tensor data.
@@ -279,13 +269,9 @@ impl PdTensor {
         }
     }
 
-    pub fn copy_to_cpu_tmp(&self, output_data: &mut [i64; 12]) {
-        unsafe {
-            PD_TensorCopyToCpuInt64(self.raw_tensor_ptr, output_data.as_mut_ptr());
-        };
-    }
-
-    pub fn copy_to_cpu_tmp2(&self, output_size: usize) -> Vec<i64> {
+    /// Copy the tensor data to the host memory
+    /// It's usually used to get the output tensor data.
+    pub fn copy_to_cpu(&self, output_size: usize) -> Vec<i64> {
         let mut output = vec![0; output_size];
 
         unsafe {
@@ -293,17 +279,6 @@ impl PdTensor {
         };
 
         output
-    }
-
-    /// Copy the tensor data to the host memory
-    /// It's usually used to get the output tensor data.
-    pub fn copy_to_cpu<T>(&self, output_data: &mut T)
-    where T: CopyPdOutput + IntoIterator {
-        output_data.copy_pd_output(&self);
-
-
-        // set len
-        // x.set_len(size);
     }
 }
 

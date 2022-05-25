@@ -110,48 +110,21 @@ fn main() {
     _sec_words_batch.push(sec_words.clone());
     shape_size += sec_words.count() as u64;
 
-    // let mut c_lod_vec_: Vec<u64> = vec![0];
-    // c_lod_vec_.push(shape_size);
-    
-    // let t_lod = vec![c_lod_vec_];
-
-
-    // println!("lod: {:?}", t_lod);
-
-    // input_tensor.set_lod(t_lod);
-
-    //lod_tmp
-    let mut c_lod_vec_: Vec<c_ulonglong> = vec![0];
+    let mut c_lod_vec_: Vec<u64> = vec![0];
     c_lod_vec_.push(shape_size);
-    println!("c_lod_vec_ {:?}", c_lod_vec_);
-    let c_lod_vec_cvec = unsafe {
-        CVec::new(c_lod_vec_.as_mut_ptr(), c_lod_vec_.len())
-    };
     
-    let mut c_lod: PD_OneDimArraySize = PD_OneDimArraySize {
-        size: c_lod_vec_cvec.len() as c_ulonglong,
-        data: unsafe { c_lod_vec_cvec.into_inner() }
-    };
-    let c_lod_ptr: *mut PD_OneDimArraySize = &mut c_lod;
+    let t_lod = vec![c_lod_vec_.clone()];
 
-    let mut lod_vec_final: Vec<*mut PD_OneDimArraySize> = vec![c_lod_ptr];
-    let c_lod_vec_final = unsafe {
-        CVec::new(lod_vec_final.as_mut_ptr(), lod_vec_final.len())
-    };
-    
-    let t_lod = PD_TwoDimArraySize {
-        size: c_lod_vec_final.len() as c_ulonglong,
-        data: unsafe { c_lod_vec_final.into_inner() }
-    };
 
-    input_tensor.set_lod_tmp(t_lod);
-    //\lod_tmp
+    println!("lod: {:?}", t_lod);
+
+    input_tensor.set_lod(t_lod);
 
     let mut shape: Vec<i32> = vec![_sec_words_batch[0].clone().count() as i32, 1];
     input_tensor.reshape(&mut shape);
     println!("shape: {:?}", shape);
 
-    let mut data: Vec<i64> = _sec_words_batch[0].clone().into_iter().map(|c| {
+    let data: Vec<i64> = _sec_words_batch[0].clone().into_iter().map(|c| {
         let mut word = c.clone().to_string();
         if let Some(q2b_word) = q2b_dict.get(&word) {
             word = q2b_word.to_owned();
@@ -167,8 +140,7 @@ fn main() {
 
     println!("data: {:?}", data);
 
-    // input_tensor.copy_from_cpu(data);
-    input_tensor.copy_from_cpu_tmp(&mut data);
+    input_tensor.copy_from_cpu(data);
 
     let d_type = input_tensor.get_data_type();
     println!("d-type {:?}", d_type);
@@ -184,9 +156,7 @@ fn main() {
     println!("input_tensor: {:?}", input_tensor);
     println!("output_tensor: {:?}", output_tensor);
 
-
-    // let mut output_data: Vec<i64> = vec![0; shape[0].try_into().unwrap()];
-    let output_data = output_tensor.copy_to_cpu_tmp2(output_shape[0].try_into().unwrap());
+    let output_data = output_tensor.copy_to_cpu(output_shape[0].try_into().unwrap());
 
     for (i, c) in c_lod_vec_.iter().enumerate() {
         let next = c_lod_vec_.get(i + 1)
@@ -205,10 +175,6 @@ fn main() {
             println!("no label for: {}", oid);
         }
     }
-    
-
-    // let mut output_data: Vec<i64> = vec![];
-    // output_tensor.copy_to_cpu(&mut output_data);
 
     println!("ouput_data: {:?}", output_data);
 
