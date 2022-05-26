@@ -1,6 +1,6 @@
-use std::os::raw::{c_ulonglong};
+use std::{os::raw::{c_ulonglong}, ffi::CStr};
 
-use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorGetLod, PD_TwoDimArraySizeDestroy};
+use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorGetLod, PD_TensorGetName};
 
 use crate::{copy_pd_input::CopyPdInput, copy_pd_output::CopyPdOutput};
 
@@ -150,6 +150,15 @@ impl PdTensor {
             PD_DATA_UINT8 => PdTensorDataType::UINT8,
             PD_DATA_UNK | _ => PdTensorDataType::UNK,
         }
+    }
+
+    /// Get the tensor name
+    pub fn get_name(&self) -> String {
+        let raw_name = unsafe {
+            PD_TensorGetName(self.get_raw_tensor_ptr())
+        };
+        let cstr = unsafe { CStr::from_ptr(raw_name) };
+        cstr.to_str().expect("c_str").to_owned()
     }
 
     /// Copy the host memory to tensor data.

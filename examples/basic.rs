@@ -180,6 +180,9 @@ fn main() {
     let get_lod = input_tensor.get_lod();
     println!("get_lod: {:?}", get_lod);
 
+    let input_tensor_name = input_tensor.get_name();
+    println!("input_tensor_name: {}", input_tensor_name);
+
     let version_c = unsafe { CStr::from_ptr(PD_GetVersion()) };
     println!("version: {:?}", version_c);
 }
