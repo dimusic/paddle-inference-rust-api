@@ -133,10 +133,6 @@ impl PdTensor {
             }
         }).collect();
 
-        unsafe {
-            PD_TwoDimArraySizeDestroy(c_lod_ptr);
-        };
-
         res
     }
 
