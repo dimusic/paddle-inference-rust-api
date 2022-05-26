@@ -65,7 +65,7 @@ impl PdTensor {
     }
 
     /// Get the tensor shape
-    pub fn shape(&self) -> Vec<i32> {
+    pub fn get_shape(&self) -> Vec<i32> {
         let shape_ptr = unsafe {
             PD_TensorGetShape(self.raw_tensor_ptr)
         };
@@ -154,21 +154,6 @@ impl PdTensor {
             PD_DATA_UINT8 => PdTensorDataType::UINT8,
             PD_DATA_UNK | _ => PdTensorDataType::UNK,
         }
-    }
-
-    pub fn get_shape(&self) -> Vec<i32> {
-        let shape_ptr = unsafe {
-            PD_TensorGetShape(self.raw_tensor_ptr)
-        };
-        let shape = unsafe { *shape_ptr };
-
-        let converted_shape = c_int_arr_to_rust_ints(shape.size, shape.data);
-
-        unsafe {
-            PD_OneDimArrayInt32Destroy(shape_ptr);
-        };
-
-        converted_shape
     }
 
     /// Copy the host memory to tensor data.
