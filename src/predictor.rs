@@ -37,7 +37,7 @@ impl PdPredictor {
         };
 
         Self {
-            raw_predictor_ptr: raw_predictor_ptr
+            raw_predictor_ptr
         }
     }
 

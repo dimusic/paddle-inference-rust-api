@@ -1,6 +1,6 @@
 use std::{os::raw::{c_ulonglong}, ffi::CStr};
 
-use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorGetLod, PD_TensorGetName};
+use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorGetLod, PD_TensorGetName};
 
 use crate::{copy_pd_input::CopyPdInput, copy_pd_output::CopyPdOutput};
 
@@ -123,7 +123,7 @@ impl PdTensor {
             Vec::from_raw_parts(c_lod_data, c_lod_size, c_lod_size)
         };
 
-        let res = lod_data.into_iter().map(|d| {
+        lod_data.into_iter().map(|d| {
             let arr = unsafe { *d };
             let size: usize = arr.size.try_into().unwrap();
             let data = arr.data;
@@ -131,9 +131,7 @@ impl PdTensor {
             unsafe {
                 Vec::from_raw_parts(data, size, size)
             }
-        }).collect();
-
-        res
+        }).collect()
     }
 
     /// Get the tensor data type
@@ -148,7 +146,7 @@ impl PdTensor {
             PD_DATA_INT64 => PdTensorDataType::INT64,
             PD_DATA_INT8 => PdTensorDataType::INT8,
             PD_DATA_UINT8 => PdTensorDataType::UINT8,
-            PD_DATA_UNK | _ => PdTensorDataType::UNK,
+            _ => PdTensorDataType::UNK,
         }
     }
 
@@ -163,15 +161,15 @@ impl PdTensor {
 
     /// Copy the host memory to tensor data.
     /// It's usually used to set the input tensor data.
-    pub fn copy_from_cpu<T>(&self, data: &mut T)
+    pub fn copy_from_cpu<T>(&self, data: T)
     where T: CopyPdInput {
-        data.copy_pd_input(&self);
+        data.copy_pd_input(self);
     }
 
     /// Copy the tensor data to the host memory
     /// It's usually used to get the output tensor data.
     pub fn copy_to_cpu<T>(&self, output: &mut T)
     where T: CopyPdOutput {
-        output.copy_pd_output(&self);
+        output.copy_pd_output(self);
     }
 }

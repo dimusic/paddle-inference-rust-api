@@ -3,11 +3,11 @@ use paddle_inference_api_sys::{PD_TensorCopyFromCpuFloat, PD_TensorCopyFromCpuUi
 use crate::PdTensor;
 
 pub trait CopyPdInput {
-    fn copy_pd_input(&mut self, tensor: &PdTensor) -> ();
+    fn copy_pd_input(self, tensor: &PdTensor);
 }
 
 impl CopyPdInput for Vec<f32> {
-    fn copy_pd_input(&mut self, tensor: &PdTensor) -> () {
+    fn copy_pd_input(mut self, tensor: &PdTensor) {
         let ptr = self.as_mut_ptr();
         std::mem::forget(self);
 
@@ -18,7 +18,7 @@ impl CopyPdInput for Vec<f32> {
 }
 
 impl CopyPdInput for Vec<u8> {
-    fn copy_pd_input(&mut self, tensor: &PdTensor) -> () {
+    fn copy_pd_input(mut self, tensor: &PdTensor) {
         let ptr = self.as_mut_ptr();
         std::mem::forget(self);
 
@@ -29,7 +29,7 @@ impl CopyPdInput for Vec<u8> {
 }
 
 impl CopyPdInput for Vec<i8> {
-    fn copy_pd_input(&mut self, tensor: &PdTensor) -> () {
+    fn copy_pd_input(mut self, tensor: &PdTensor) {
         let ptr = self.as_mut_ptr();
         std::mem::forget(self);
 
@@ -40,7 +40,7 @@ impl CopyPdInput for Vec<i8> {
 }
 
 impl CopyPdInput for Vec<i32> {
-    fn copy_pd_input(&mut self, tensor: &PdTensor) -> () {
+    fn copy_pd_input(mut self, tensor: &PdTensor) {
         let ptr = self.as_mut_ptr();
         std::mem::forget(self);
 
@@ -51,7 +51,7 @@ impl CopyPdInput for Vec<i32> {
 }
 
 impl CopyPdInput for Vec<i64> {
-    fn copy_pd_input(&mut self, tensor: &PdTensor) -> () {
+    fn copy_pd_input(mut self, tensor: &PdTensor) {
         let ptr = self.as_mut_ptr();
         std::mem::forget(self);
 

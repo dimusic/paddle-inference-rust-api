@@ -7,6 +7,12 @@ pub struct PdConfig {
     raw_config_ptr: *mut PD_Config
 }
 
+impl Default for PdConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PdConfig {
     pub fn new() -> Self {
         let raw_config_ptr = unsafe {
@@ -22,25 +28,25 @@ impl PdConfig {
         self.raw_config_ptr
     }
 
-    pub fn disable_gpu(&self) -> () {
+    pub fn disable_gpu(&self) {
         unsafe {
             PD_ConfigDisableGpu(self.raw_config_ptr);
         }
     }
 
-    pub fn disable_glog_info(&self) -> () {
+    pub fn disable_glog_info(&self) {
         unsafe {
             PD_ConfigDisableGlogInfo(self.raw_config_ptr);
         }
     }
 
-    pub fn set_cpu_math_library_num_threads(&self, threads: i32) -> () {
+    pub fn set_cpu_math_library_num_threads(&self, threads: i32) {
         unsafe {
             PD_ConfigSetCpuMathLibraryNumThreads(self.raw_config_ptr, threads);
         }
     }
 
-    pub fn set_model_dir(&self, model_path: &str) -> () {
+    pub fn set_model_dir(&self, model_path: &str) {
         let model_path_c_str = CString::new(model_path).expect("CString failed");
 
         unsafe {

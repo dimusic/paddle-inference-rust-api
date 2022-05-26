@@ -139,7 +139,7 @@ fn main() {
 
     println!("data: {:?}", data);
 
-    input_tensor.copy_from_cpu(&mut data);
+    input_tensor.copy_from_cpu(data);
 
     let d_type = input_tensor.get_data_type();
     println!("d-type {:?}", d_type);
