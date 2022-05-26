@@ -15,5 +15,3 @@ members = [
 
 [dependencies]
 paddle-inference-api-sys = { path = "./paddle-inference-api-sys" }
-c_vec = "2.0.0"
-num = "0.4"
