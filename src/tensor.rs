@@ -1,6 +1,6 @@
 use std::os::raw::{c_ulonglong};
 
-use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorGetLod};
+use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorGetLod, PD_TwoDimArraySizeDestroy};
 
 use crate::{copy_pd_input::CopyPdInput, copy_pd_output::CopyPdOutput};
 
@@ -44,6 +44,7 @@ impl PdTensor {
         }
     }
 
+    /// Get raw pointer for the PD_Tensor
     pub fn get_raw_tensor_ptr(&self) -> *mut PD_Tensor {
         self.raw_tensor_ptr
     }
@@ -114,14 +115,15 @@ impl PdTensor {
 
     /// Get the tensor lod information
     pub fn get_lod(&self) -> Vec<Vec<u64>> {
-        let c_lod = unsafe { *PD_TensorGetLod(self.raw_tensor_ptr) };
+        let c_lod_ptr = unsafe { PD_TensorGetLod(self.raw_tensor_ptr) };
+        let c_lod = unsafe { *c_lod_ptr };
         let c_lod_size: usize = c_lod.size.try_into().unwrap();
         let c_lod_data = c_lod.data;
         let lod_data = unsafe {
             Vec::from_raw_parts(c_lod_data, c_lod_size, c_lod_size)
         };
 
-        lod_data.into_iter().map(|d| {
+        let res = lod_data.into_iter().map(|d| {
             let arr = unsafe { *d };
             let size: usize = arr.size.try_into().unwrap();
             let data = arr.data;
@@ -129,7 +131,13 @@ impl PdTensor {
             unsafe {
                 Vec::from_raw_parts(data, size, size)
             }
-        }).collect()
+        }).collect();
+
+        unsafe {
+            PD_TwoDimArraySizeDestroy(c_lod_ptr);
+        };
+
+        res
     }
 
     /// Get the tensor data type
