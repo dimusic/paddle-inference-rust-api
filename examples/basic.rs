@@ -1,7 +1,6 @@
-use std::{collections::HashMap, fs::File, io::{BufReader, BufRead}, str::Chars, os::raw::c_ulonglong, ffi::CStr};
+use std::{collections::HashMap, fs::File, io::{BufReader, BufRead}, str::Chars, ffi::CStr};
 
-use c_vec::CVec;
-use paddle_inference_api_sys::{PD_OneDimArraySize, PD_TwoDimArraySize, PD_GetVersion};
+use paddle_inference_api_sys::{PD_GetVersion};
 use paddle_inference_rust_api::{PdConfig, PdPredictor};
 
 
@@ -120,11 +119,11 @@ fn main() {
 
     input_tensor.set_lod(t_lod);
 
-    let mut shape: Vec<i32> = vec![_sec_words_batch[0].clone().count() as i32, 1];
-    input_tensor.reshape(&mut shape);
+    let shape: Vec<i32> = vec![_sec_words_batch[0].clone().count() as i32, 1];
     println!("shape: {:?}", shape);
+    input_tensor.reshape(shape);
 
-    let data: Vec<i64> = _sec_words_batch[0].clone().into_iter().map(|c| {
+    let mut data: Vec<i64> = _sec_words_batch[0].clone().into_iter().map(|c| {
         let mut word = c.clone().to_string();
         if let Some(q2b_word) = q2b_dict.get(&word) {
             word = q2b_word.to_owned();
@@ -140,7 +139,7 @@ fn main() {
 
     println!("data: {:?}", data);
 
-    input_tensor.copy_from_cpu(data);
+    input_tensor.copy_from_cpu(&mut data);
 
     let d_type = input_tensor.get_data_type();
     println!("d-type {:?}", d_type);
@@ -156,7 +155,8 @@ fn main() {
     println!("input_tensor: {:?}", input_tensor);
     println!("output_tensor: {:?}", output_tensor);
 
-    let output_data = output_tensor.copy_to_cpu(output_shape[0].try_into().unwrap());
+    let mut output_data: Vec<i64> = vec![0; output_shape[0].try_into().unwrap()];
+    output_tensor.copy_to_cpu(&mut output_data);
 
     for (i, c) in c_lod_vec_.iter().enumerate() {
         let next = c_lod_vec_.get(i + 1)

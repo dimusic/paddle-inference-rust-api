@@ -1,8 +1,8 @@
 use std::os::raw::{c_ulonglong};
 
-use c_vec::CVec;
-use num::{NumCast, ToPrimitive};
-use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorCopyFromCpuInt64, PD_TensorCopyFromCpuFloat, PD_TensorCopyFromCpuUint8, PD_TensorCopyFromCpuInt8, PD_TensorCopyFromCpuInt32, PD_TensorCopyToCpuInt64, PD_TensorGetLod};
+use paddle_inference_api_sys::{PD_Tensor, PD_TensorDestroy, PD_TensorReshape, PD_TensorGetShape, PD_OneDimArrayInt32Destroy, PD_TensorSetLod, PD_OneDimArraySize, PD_TwoDimArraySize, PD_TensorGetDataType, PD_DATA_FLOAT32, PD_DATA_UNK, PD_DATA_INT32, PD_DATA_INT64, PD_DATA_INT8, PD_DATA_UINT8, PD_TensorGetLod};
+
+use crate::{copy_pd_input::CopyPdInput, copy_pd_output::CopyPdOutput};
 
 #[derive(Debug)]
 pub enum PdTensorDataType {
@@ -13,55 +13,6 @@ pub enum PdTensorDataType {
     INT8,
     UINT8,
 }
-
-pub trait ToPdTensorDataType {
-    fn to_pd_tensor_data_type(&self) -> PdTensorDataType;
-}
-
-impl ToPdTensorDataType for f32 {
-    fn to_pd_tensor_data_type(&self) -> PdTensorDataType {
-        PdTensorDataType::FLOAT32
-    }
-}
-
-impl ToPdTensorDataType for u8 {
-    fn to_pd_tensor_data_type(&self) -> PdTensorDataType {
-        PdTensorDataType::UINT8
-    }
-}
-
-impl ToPdTensorDataType for i8 {
-    fn to_pd_tensor_data_type(&self) -> PdTensorDataType {
-        PdTensorDataType::INT8
-    }
-}
-
-impl ToPdTensorDataType for i32 {
-    fn to_pd_tensor_data_type(&self) -> PdTensorDataType {
-        PdTensorDataType::INT32
-    }
-}
-
-impl ToPdTensorDataType for i64 {
-    fn to_pd_tensor_data_type(&self) -> PdTensorDataType {
-        PdTensorDataType::INT64
-    }
-}
-
-pub trait CopyPdOutput {
-    fn copy_pd_output(&mut self, tensor: &PdTensor) -> ();
-}
-
-impl CopyPdOutput for Vec<i64> {
-    fn copy_pd_output(&mut self, tensor: &PdTensor) -> () {
-        println!("copy_pd_output");
-
-        unsafe {
-            PD_TensorCopyToCpuInt64(tensor.raw_tensor_ptr, self.as_mut_ptr());
-        }
-    }
-}
-
 
 fn c_int_arr_to_rust_ints(size: u64, data: *mut i32) -> Vec<i32> {
     let mut res: Vec<i32> = vec![];
@@ -93,14 +44,22 @@ impl PdTensor {
         }
     }
 
+    pub fn get_raw_tensor_ptr(&self) -> *mut PD_Tensor {
+        self.raw_tensor_ptr
+    }
+
     /// Reset the shape of the tensor."]
     /// Generally it's only used for the input tensor.
     /// Reshape must be called before calling PD_TensorMutableData*() or
     /// PD_TensorCopyFromCpu*()
-    pub fn reshape(&self, shape: &mut Vec<i32>) {
+    pub fn reshape(&self, mut shape: Vec<i32>) {
+        let len: u64 = shape.len().try_into().unwrap();
+        let ptr = shape.as_mut_ptr();
+
+        std::mem::forget(shape);
+
         unsafe {
-            let c_vec_shape = CVec::new(shape.as_mut_ptr(), shape.len());
-            PD_TensorReshape(self.raw_tensor_ptr, shape.len().try_into().unwrap(), c_vec_shape.into_inner());
+            PD_TensorReshape(self.raw_tensor_ptr, len, ptr);
         };
     }
 
@@ -161,7 +120,7 @@ impl PdTensor {
         let lod_data = unsafe {
             Vec::from_raw_parts(c_lod_data, c_lod_size, c_lod_size)
         };
-        
+
         lod_data.into_iter().map(|d| {
             let arr = unsafe { *d };
             let size: usize = arr.size.try_into().unwrap();
@@ -206,89 +165,15 @@ impl PdTensor {
 
     /// Copy the host memory to tensor data.
     /// It's usually used to set the input tensor data.
-    pub fn copy_from_cpu<T>(&self, data: Vec<T>)
-    where T: ToPdTensorDataType + ToPrimitive {
-        if data.len() == 0 {
-            return ();
-        }
-
-        let tensor_data_type = data.first().unwrap().to_pd_tensor_data_type();
-
-        match tensor_data_type {
-            PdTensorDataType::FLOAT32 => {
-                let mut data_typed: Vec<f32> = data.into_iter()
-                    .map(|item| NumCast::from(item).unwrap()).collect();
-
-                let data_cvec = unsafe {
-                    CVec::<f32>::new(data_typed.as_mut_ptr(), data_typed.len())
-                };
-
-                unsafe {
-                    PD_TensorCopyFromCpuFloat(self.raw_tensor_ptr, data_cvec.into_inner());
-                };
-            },
-            PdTensorDataType::UINT8 => {
-                let mut data_typed: Vec<u8> = data.into_iter()
-                    .map(|item| NumCast::from(item).unwrap()).collect();
-                
-                let data_cvec = unsafe {
-                    CVec::<u8>::new(data_typed.as_mut_ptr(), data_typed.len())
-                };
-                
-                unsafe {
-                    PD_TensorCopyFromCpuUint8(self.raw_tensor_ptr, data_cvec.into_inner());
-                };
-            },
-            PdTensorDataType::INT8 => {
-                let mut data_typed: Vec<i8> = data.into_iter()
-                    .map(|item| NumCast::from(item).unwrap()).collect();
-                
-                let data_cvec = unsafe {
-                    CVec::<i8>::new(data_typed.as_mut_ptr(), data_typed.len())
-                };
-
-                unsafe {
-                    PD_TensorCopyFromCpuInt8(self.raw_tensor_ptr, data_cvec.into_inner());
-                };
-            },
-            PdTensorDataType::INT32 => {
-                let mut data_typed: Vec<i32> = data.into_iter()
-                    .map(|item| NumCast::from(item).unwrap()).collect();
-                
-                let data_cvec = unsafe {
-                    CVec::<i32>::new(data_typed.as_mut_ptr(), data_typed.len())
-                };
-
-                unsafe {
-                    PD_TensorCopyFromCpuInt32(self.raw_tensor_ptr, data_cvec.into_inner());
-                };
-            },
-            PdTensorDataType::INT64 => {
-                let mut data_typed: Vec<i64> = data.into_iter()
-                    .map(|item| NumCast::from(item).unwrap()).collect();
-                
-                let data_cvec = unsafe {
-                    CVec::<i64>::new(data_typed.as_mut_ptr(), data_typed.len())
-                };
-
-                unsafe {
-                    PD_TensorCopyFromCpuInt64(self.raw_tensor_ptr, data_cvec.into_inner());
-                };
-            },
-            _ => { }
-        }
+    pub fn copy_from_cpu<T>(&self, data: &mut T)
+    where T: CopyPdInput {
+        data.copy_pd_input(&self);
     }
 
     /// Copy the tensor data to the host memory
     /// It's usually used to get the output tensor data.
-    pub fn copy_to_cpu(&self, output_size: usize) -> Vec<i64> {
-        let mut output = vec![0; output_size];
-
-        unsafe {
-            PD_TensorCopyToCpuInt64(self.raw_tensor_ptr, output.as_mut_ptr());
-        };
-
-        output
+    pub fn copy_to_cpu<T>(&self, output: &mut T)
+    where T: CopyPdOutput {
+        output.copy_pd_output(&self);
     }
 }
-
