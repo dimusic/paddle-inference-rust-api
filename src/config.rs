@@ -28,24 +28,28 @@ impl PdConfig {
         self.raw_config_ptr
     }
 
+    /// Turn off GPU.
     pub fn disable_gpu(&self) {
         unsafe {
             PD_ConfigDisableGpu(self.raw_config_ptr);
         }
     }
 
+    /// Mute all logs in Paddle inference.
     pub fn disable_glog_info(&self) {
         unsafe {
             PD_ConfigDisableGlogInfo(self.raw_config_ptr);
         }
     }
 
+    /// Set the number of cpu math library threads.
     pub fn set_cpu_math_library_num_threads(&self, threads: i32) {
         unsafe {
             PD_ConfigSetCpuMathLibraryNumThreads(self.raw_config_ptr, threads);
         }
     }
 
+    /// Set the no-combined model dir path.
     pub fn set_model_dir(&self, model_path: &str) {
         let model_path_c_str = CString::new(model_path).expect("CString failed");
 

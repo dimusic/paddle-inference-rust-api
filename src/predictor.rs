@@ -4,7 +4,7 @@ use paddle_inference_api_sys::{PD_Predictor, PD_PredictorCreate, PD_PredictorDes
 
 use crate::{config::PdConfig, tensor::PdTensor};
 
-fn c_str_arr_to_rust_strings(size: u64, data: *mut *mut i8) -> Vec<String> {
+fn c_str_arr_to_rust_vec(size: u64, data: *mut *mut i8) -> Vec<String> {
     let mut res: Vec<String> = vec![];
 
     for i in 0..size {
@@ -55,7 +55,7 @@ impl PdPredictor {
         let names_count = input_names.size;
         let names_arr = input_names.data;
 
-        let input_names_vec = c_str_arr_to_rust_strings(names_count, names_arr);
+        let input_names_vec = c_str_arr_to_rust_vec(names_count, names_arr);
 
         unsafe {
             PD_OneDimArrayCstrDestroy(input_names_ptr);
@@ -85,7 +85,7 @@ impl PdPredictor {
         let names_count = output_names.size;
         let names_arr = output_names.data;
 
-        let output_names_vec = c_str_arr_to_rust_strings(names_count, names_arr);
+        let output_names_vec = c_str_arr_to_rust_vec(names_count, names_arr);
 
         unsafe {
             PD_OneDimArrayCstrDestroy(output_names_ptr);

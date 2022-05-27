@@ -1,8 +1,6 @@
-use std::{collections::HashMap, fs::File, io::{BufReader, BufRead}, str::Chars, ffi::CStr};
+use std::{collections::HashMap, fs::File, io::{BufReader, BufRead}, str::Chars};
 
-use paddle_inference_api_sys::{PD_GetVersion};
 use paddle_inference_rust_api::{PdConfig, PdPredictor, get_version};
-
 
 fn load_word2id_dict(path: String) -> HashMap<String, i64> {
     let mut dict: HashMap<String, i64> = HashMap::new();
@@ -123,7 +121,7 @@ fn main() {
     println!("shape: {:?}", shape);
     input_tensor.reshape(shape);
 
-    let mut data: Vec<i64> = _sec_words_batch[0].clone().into_iter().map(|c| {
+    let data: Vec<i64> = _sec_words_batch[0].clone().into_iter().map(|c| {
         let mut word = c.clone().to_string();
         if let Some(q2b_word) = q2b_dict.get(&word) {
             word = q2b_word.to_owned();

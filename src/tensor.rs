@@ -14,7 +14,7 @@ pub enum PdTensorDataType {
     UINT8,
 }
 
-fn c_int_arr_to_rust_ints(size: u64, data: *mut i32) -> Vec<i32> {
+fn c_int_arr_to_rust_vec(size: u64, data: *mut i32) -> Vec<i32> {
     let mut res: Vec<i32> = vec![];
 
     for i in 0..size {
@@ -70,7 +70,7 @@ impl PdTensor {
             PD_TensorGetShape(self.raw_tensor_ptr)
         };
         let shape = unsafe { *shape_ptr };
-        let input_names_vec = c_int_arr_to_rust_ints(shape.size, shape.data);
+        let input_names_vec = c_int_arr_to_rust_vec(shape.size, shape.data);
 
         unsafe {
             PD_OneDimArrayInt32Destroy(shape_ptr);
