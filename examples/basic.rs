@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::File, io::{BufReader, BufRead}, str::Chars, ffi::CStr};
 
 use paddle_inference_api_sys::{PD_GetVersion};
-use paddle_inference_rust_api::{PdConfig, PdPredictor};
+use paddle_inference_rust_api::{PdConfig, PdPredictor, get_version};
 
 
 fn load_word2id_dict(path: String) -> HashMap<String, i64> {
@@ -183,6 +183,6 @@ fn main() {
     let input_tensor_name = input_tensor.get_name();
     println!("input_tensor_name: {}", input_tensor_name);
 
-    let version_c = unsafe { CStr::from_ptr(PD_GetVersion()) };
-    println!("version: {:?}", version_c);
+    let version = get_version();
+    println!("version: {:?}", version);
 }
