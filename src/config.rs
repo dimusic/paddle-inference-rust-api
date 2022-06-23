@@ -1,6 +1,6 @@
 use std::ffi::CString;
 
-use paddle_inference_api_sys::{PD_ConfigCreate, PD_Config, PD_ConfigDisableGpu, PD_ConfigSetCpuMathLibraryNumThreads, PD_ConfigDisableGlogInfo, PD_ConfigSetModelDir, PD_ConfigEnableMKLDNN};
+use paddle_inference_api_sys::{PD_ConfigCreate, PD_Config, PD_ConfigDisableGpu, PD_ConfigSetCpuMathLibraryNumThreads, PD_ConfigDisableGlogInfo, PD_ConfigSetModelDir, PD_ConfigEnableMKLDNN, PD_ConfigSetModel};
 
 #[derive(Debug)]
 pub struct PdConfig {
@@ -56,9 +56,24 @@ impl PdConfig {
         }
     }
 
+    /// Set the combined model with two specific pathes for program and
+    /// parameters.
+    pub fn set_model(&self, model_path: &str, params_path: &str) {
+        let model_path_c_str = CString::new(model_path).unwrap();
+        let params_path_c_str = CString::new(params_path).unwrap();
+        
+        unsafe {
+            PD_ConfigSetModel(
+                self.raw_config_ptr,
+                model_path_c_str.as_ptr(),
+                params_path_c_str.as_ptr()
+            )
+        }
+    }
+
     /// Set the no-combined model dir path.
     pub fn set_model_dir(&self, model_path: &str) {
-        let model_path_c_str = CString::new(model_path).expect("CString failed");
+        let model_path_c_str = CString::new(model_path).unwrap();
 
         unsafe {
             PD_ConfigSetModelDir(self.raw_config_ptr, model_path_c_str.as_ptr())
