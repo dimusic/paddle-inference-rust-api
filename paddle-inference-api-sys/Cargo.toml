@@ -10,4 +10,4 @@ description = "Raw FFI bindings for Paddle Inference API"
 links = "paddle_inference_c"
 
 [build-dependencies]
-bindgen = "0.59.2"
+bindgen = "0.60.1"
