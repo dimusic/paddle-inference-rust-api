@@ -7,21 +7,14 @@ use std::fs;
 use std::io::ErrorKind;
 
 fn main() {
-    // paddle_c download from https://paddleinference.paddlepaddle.org.cn/master/user_guides/download_lib.html
-    // Linux - LD_LIBRARY_PATH
-    // MacOS - DYLD_FALLBACK_LIBRARY_PATH
-    // Windows - PATH
-    //
-    // All - LIB_PADDLE_C_INSTALL_DIR
-    
     println!("cargo:rerun-if-changed=paddle_wrapper.h");
 
-    let paddle_c_install_dir = option_env!("LIB_PADDLE_C_INSTALL_DIR").unwrap_or("");
-        // .expect("LIB_PADDLE_C_INSTALL_DIR is not set");
-
+    let paddle_c_install_dir = option_env!("LIB_PADDLE_C_INSTALL_DIR")
+        .expect("LIB_PADDLE_C_INSTALL_DIR is not set");
     let paddle_c_install_dir = PathBuf::from(paddle_c_install_dir);
     
-    println!("cargo:rustc-link-search=native={}", paddle_c_install_dir.join("paddle").join("lib").display());
+    println!("cargo:warning=cmake {}", paddle_c_install_dir.display());
+    println!("cargo:rustc-link-search=native={}", paddle_c_install_dir.display());//.join("paddle").join("lib").display());
     println!("cargo:rustc-link-lib=dylib=paddle_inference_c");
     
     let bindings = bindgen::Builder::default()
